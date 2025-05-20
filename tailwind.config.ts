@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import plugin from "tailwindcss/plugin";
 
 export default {
   darkMode: ["class"],
@@ -9,6 +10,10 @@ export default {
       padding: "1rem",
     },
     extend: {
+      fontFamily: {
+        sans: ["'InterVariable'", "'Inter var'", "ui-sans-serif", "system-ui", "-apple-system", "sans-serif"],
+        mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
@@ -90,5 +95,26 @@ export default {
       },
     },
   },
-  plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
+  plugins: [
+    plugin(({ addBase, theme }) => {
+      addBase({
+        ":root": {
+          "--space-xs": theme("spacing.1"),
+          "--space-sm": theme("spacing.2"),
+          "--space-md": theme("spacing.4"),
+          "--space-lg": theme("spacing.6"),
+          "--space-xl": theme("spacing.8"),
+          "--radius-sm": theme("borderRadius.sm"),
+          "--radius-md": theme("borderRadius.md"),
+          "--radius-lg": theme("borderRadius.lg"),
+          "--step-0": theme("fontSize.base")[0],
+          "--step-1": theme("fontSize.lg")[0],
+          "--step-2": theme("fontSize.xl")[0],
+          "--step-3": theme("fontSize.2xl")[0],
+        },
+      });
+    }),
+    require("tailwindcss-animate"),
+    require("@tailwindcss/typography"),
+  ],
 } satisfies Config;
