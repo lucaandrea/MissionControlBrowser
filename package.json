@@ -10,8 +10,8 @@
     "check": "tsc",
     "test": "tsx --test tests/*.test.ts",
     "e2e": "playwright test",
-    "lint": "eslint ."
-    "db:push": "drizzle-kit push",
+    "lint": "eslint .",
+    "db:push": "drizzle-kit push"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
