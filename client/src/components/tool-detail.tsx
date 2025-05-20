@@ -65,19 +65,21 @@ export function ToolDetail({
           </p>
         )}
         
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-          <SchemaForm
-            schema={tool.inputs}
-            form={form}
-          />
-          
-          <Button 
-            type="submit" 
-            className="w-full" 
-            disabled={isRunning || form.formState.isSubmitting}>
-            {isRunning ? "Running..." : "Run Tool"}
-          </Button>
-        </form>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            <SchemaForm
+              schema={tool.inputs}
+              form={form}
+            />
+            
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={isRunning || form.formState.isSubmitting}>
+              {isRunning ? "Running..." : "Run Tool"}
+            </Button>
+          </form>
+        </Form>
       </div>
     </div>
   );
