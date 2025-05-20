@@ -103,13 +103,8 @@ export const useAppStore = create<
         connectionError: error instanceof Error ? error.message : String(error),
       });
       
-      // Show error toast
-      const { toast } = useToast();
-      toast({
-        title: "Connection failed",
-        description: error instanceof Error ? error.message : String(error),
-        variant: "destructive",
-      });
+      // We'll handle error toasts in the component instead
+      console.error("Connection failed:", error instanceof Error ? error.message : String(error));
     }
   },
   
@@ -155,13 +150,8 @@ export const useAppStore = create<
         authError: error instanceof Error ? error.message : String(error),
       });
       
-      // Show error toast
-      const { toast } = useToast();
-      toast({
-        title: "Authentication failed",
-        description: error instanceof Error ? error.message : String(error),
-        variant: "destructive",
-      });
+      // We'll handle error messages in the component instead
+      console.error("Authentication failed:", error instanceof Error ? error.message : String(error));
     }
   },
   
@@ -256,13 +246,8 @@ export const useAppStore = create<
         });
       }
       
-      // Show error toast
-      const { toast } = useToast();
-      toast({
-        title: "Execution failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      // We'll handle error messages in the component
+      console.error("Execution failed:", errorMessage);
     }
   },
   

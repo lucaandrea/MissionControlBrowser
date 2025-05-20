@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { useTheme } from "@/lib/themes";
+import { useTheme } from "@/components/theme-provider";
 import { useAppStore } from "@/stores/app-store";
 import { Moon, Sun, History, Settings, LogOut } from "lucide-react";
 
