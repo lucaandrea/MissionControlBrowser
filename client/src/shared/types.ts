@@ -42,12 +42,18 @@ export interface JSONSchema {
   items?: JSONSchemaProperty;
   enum?: (string | number | boolean)[];
   default?: any;
+  const?: any;
+  examples?: any[];
   minimum?: number;
   maximum?: number;
   minLength?: number;
   maxLength?: number;
+  minItems?: number;
+  maxItems?: number;
   format?: string;
   pattern?: string;
+  oneOf?: JSONSchemaProperty[];
+  anyOf?: JSONSchemaProperty[];
 }
 
 export interface JSONSchemaProperty {
@@ -55,15 +61,22 @@ export interface JSONSchemaProperty {
   title?: string;
   description?: string;
   default?: any;
+  const?: any;
+  examples?: any[];
   enum?: (string | number | boolean)[];
   minimum?: number;
   maximum?: number;
   minLength?: number;
   maxLength?: number;
+  minItems?: number;
+  maxItems?: number;
   format?: string;
   pattern?: string;
   properties?: Record<string, JSONSchemaProperty>;
   items?: JSONSchemaProperty;
+  oneOf?: JSONSchemaProperty[];
+  anyOf?: JSONSchemaProperty[];
+  required?: string[];
 }
 
 // Tool execution types
