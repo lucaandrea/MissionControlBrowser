@@ -11,6 +11,12 @@ export interface MCPServerWithAuth extends MCPServer {
   authToken: string;
 }
 
+export interface DirectoryServer {
+  name: string;
+  url: string;
+  tags?: string[];
+}
+
 // MCP Manifest types
 export interface MCPManifest {
   name: string;
@@ -140,6 +146,9 @@ export interface AppState {
   filteredTools: MCPTool[];
   searchQuery: string;
   activeTags: string[];
+
+  // Directory
+  serverDirectory: DirectoryServer[];
   
   // Execution state
   currentExecution?: ToolExecution;

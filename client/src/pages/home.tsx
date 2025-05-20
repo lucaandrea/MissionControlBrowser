@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { ServerConnectForm } from "@/components/server-connect-form";
+import { ServerDirectoryDialog } from "@/components/server-directory-dialog";
 import { AuthForm } from "@/components/auth-form";
 import { ToolCatalog } from "@/components/tool-catalog";
 import { ToolDetail } from "@/components/tool-detail";
@@ -45,6 +46,8 @@ export default function Home() {
     // History
     recentServers,
   } = useAppStore();
+
+  const [directoryOpen, setDirectoryOpen] = useState(false);
   
   // Handle initial connection to server
   const handleConnect = (url: string) => {
@@ -59,6 +62,11 @@ export default function Home() {
   // Handle authentication
   const handleAuthenticate = (token: string, remember: boolean) => {
     authenticate(token, remember);
+  };
+
+  const handleDirectorySelect = (url: string) => {
+    setDirectoryOpen(false);
+    connect(url);
   };
   
   // Handle tool execution
@@ -75,19 +83,13 @@ export default function Home() {
       <main className="flex-grow flex flex-col">
         {/* URL Input Landing (Initial View) */}
         {activeView === "url" && (
-          <div className="flex-grow flex flex-col items-center justify-center px-4 py-10 sm:px-6 lg:px-8 space-y-4">
-            {isConnecting ? (
-              <ManifestSkeleton />
-            ) : (
-              <ServerConnectForm
-                recentServers={recentServers}
-                onConnect={handleConnect}
-                onRecentServerSelect={handleRecentServerSelect}
-              />
-            )}
-            {connectionError && (
-              <p className="text-sm text-red-500 text-center">{connectionError}</p>
-            )}
+          <div className="flex-grow flex items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
+            <ServerConnectForm
+              recentServers={recentServers}
+              onConnect={handleConnect}
+              onRecentServerSelect={handleRecentServerSelect}
+              onBrowseServers={() => setDirectoryOpen(true)}
+            />
           </div>
         )}
         
@@ -195,6 +197,11 @@ export default function Home() {
       </main>
       
       <Footer />
+      <ServerDirectoryDialog
+        open={directoryOpen}
+        onOpenChange={setDirectoryOpen}
+        onSelect={handleDirectorySelect}
+      />
     </div>
   );
 }
