@@ -2,7 +2,7 @@
 export interface MCPServer {
   url: string;
   name?: string;
-  authType?: "none" | "bearer" | "apiKey";
+  authType?: "none" | "bearer" | "apiKey" | "oauth_pkce" | "api_key";
   lastConnected?: string;
   authToken?: string;
 }
@@ -17,8 +17,13 @@ export interface MCPManifest {
   description?: string;
   version?: string;
   auth?: {
-    type: "none" | "bearer" | "apiKey";
+    type: "none" | "bearer" | "apiKey" | "oauth_pkce" | "api_key";
     required: boolean;
+    name?: string;
+    header?: string;
+    authorizationUrl?: string;
+    tokenUrl?: string;
+    scopes?: string[];
   };
   tools: MCPTool[];
 }

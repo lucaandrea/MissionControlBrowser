@@ -1,8 +1,21 @@
-import { MCPManifest, ToolRequest, ToolResponse, ToolExecution } from "@/shared/types";
+import {
+  MCPManifest,
+  ToolRequest,
+  ToolResponse,
+  ToolExecution,
+} from "@/shared/types";
+
+export interface ParsedSSE {
+  type: "log" | "partial" | "final" | string;
+  data: any;
+}
 
 export class MCPClient {
   private baseUrl: string;
   private authToken?: string;
+  private manifest?: MCPManifest;
+  private manifestPath = "/.well-known/mcp.json";
+  private toolsPath = "/v1/tools";
 
   constructor(baseUrl: string, authToken?: string) {
     this.baseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
@@ -10,10 +23,40 @@ export class MCPClient {
   }
 
   /**
+   * Detects endpoint paths using well known discovery
+   */
+  private async detectEndpoints(): Promise<void> {
+    try {
+      const head = await fetch(`${this.baseUrl}/.well-known/mcp.json`, {
+        method: "HEAD",
+      });
+      if (head.ok) {
+        this.manifestPath = "/.well-known/mcp.json";
+      } else {
+        this.manifestPath = "/manifest";
+      }
+    } catch {
+      this.manifestPath = "/manifest";
+    }
+
+    try {
+      const test = await fetch(`${this.baseUrl}/v1/tools`, { method: "HEAD" });
+      if (test.ok) {
+        this.toolsPath = "/v1/tools";
+      } else {
+        this.toolsPath = "/tools";
+      }
+    } catch {
+      this.toolsPath = "/tools";
+    }
+  }
+
+  /**
    * Fetches the manifest from an MCP server
    */
   async getManifest(): Promise<MCPManifest> {
-    const response = await fetch(`${this.baseUrl}/manifest`, {
+    await this.detectEndpoints();
+    const response = await fetch(`${this.baseUrl}${this.manifestPath}`, {
       headers: this.getHeaders(),
     });
 
@@ -22,7 +65,8 @@ export class MCPClient {
       throw new Error(`Failed to fetch manifest: ${response.status} ${errorText}`);
     }
 
-    return await response.json();
+    this.manifest = await response.json();
+    return this.manifest;
   }
 
   /**
@@ -33,63 +77,24 @@ export class MCPClient {
     toolSlug: string,
     inputs: Record<string, any>
   ): AsyncGenerator<ToolResponse> {
-    const executionId = crypto.randomUUID();
-    const startTime = new Date().toISOString();
+    await this.detectEndpoints();
     const logs: string[] = [];
 
     try {
-      const response = await fetch(`${this.baseUrl}/tools/${toolSlug}`, {
+      for await (const evt of this.fetchSSE(`${this.baseUrl}${this.toolsPath}/${toolSlug}`, {
         method: "POST",
         headers: this.getHeaders(),
         body: JSON.stringify(inputs),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Tool execution failed: ${response.status} ${errorText}`);
-      }
-
-      // Handle streaming response
-      if (response.headers.get("content-type")?.includes("text/event-stream")) {
-        const reader = response.body?.getReader();
-        if (!reader) {
-          throw new Error("Failed to get response reader");
+      })) {
+        if (evt.type === "log" && typeof evt.data === "string") {
+          logs.push(evt.data);
+          yield { success: true, result: { log: evt.data }, logs: [...logs] };
+        } else if (evt.type === "partial") {
+          yield { success: true, result: evt.data, logs: [...logs] };
+        } else if (evt.type === "final") {
+          yield { success: true, result: evt.data, logs: [...logs] };
+          return;
         }
-
-        const decoder = new TextDecoder();
-        let buffer = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
-
-          for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              const data = line.substring(6);
-              if (data === "[DONE]") {
-                return;
-              }
-
-              try {
-                const parsed = JSON.parse(data);
-                if (parsed.log) {
-                  logs.push(parsed.log);
-                }
-                yield { success: true, result: parsed, logs: [...logs] };
-              } catch (e) {
-                console.error("Failed to parse SSE data:", e);
-              }
-            }
-          }
-        }
-      } else {
-        // Handle regular JSON response
-        const result = await response.json();
-        yield { success: true, result, logs };
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -102,12 +107,100 @@ export class MCPClient {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
-
-    if (this.authToken) {
+    if (this.manifest?.auth) {
+      const type = this.manifest.auth.type;
+      if ((type === "bearer" || type === "oauth_pkce") && this.authToken) {
+        headers["Authorization"] = `Bearer ${this.authToken}`;
+      } else if (type === "api_key" && this.authToken) {
+        const name =
+          (this.manifest.auth as any).name || (this.manifest.auth as any).header || "X-API-Key";
+        headers[name] = this.authToken;
+      }
+    } else if (this.authToken) {
       headers.Authorization = `Bearer ${this.authToken}`;
     }
-
     return headers;
+  }
+
+  /**
+   * Connects to an SSE endpoint with reconnection support
+   */
+  private async *fetchSSE(
+    url: string,
+    init: RequestInit
+  ): AsyncGenerator<ParsedSSE> {
+    let attempt = 0;
+    const maxDelay = 30000;
+    const controller = new AbortController();
+    const signal = init.signal ?? controller.signal;
+
+    while (!signal.aborted) {
+      try {
+        const resp = await fetch(url, { ...init, signal });
+        if (!resp.ok) {
+          throw new Error(`HTTP ${resp.status}`);
+        }
+        if (!resp.headers.get("content-type")?.includes("text/event-stream")) {
+          const data = await resp.json();
+          yield { type: "final", data };
+          return;
+        }
+        for await (const evt of this.parseSSE(resp)) {
+          yield evt;
+        }
+        return;
+      } catch (err) {
+        if (signal.aborted) {
+          return;
+        }
+        const delay = Math.min(1000 * 2 ** attempt++, maxDelay);
+        await new Promise((r) => setTimeout(r, delay));
+      }
+    }
+  }
+
+  /**
+   * Parses an SSE response and yields events
+   */
+  private async *parseSSE(response: Response): AsyncGenerator<ParsedSSE> {
+    const reader = response.body?.getReader();
+    if (!reader) {
+      return;
+    }
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let eventType: string | undefined;
+    let dataBuffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split(/\r?\n/);
+      buffer = lines.pop() || "";
+      for (const line of lines) {
+        if (line === "") {
+          if (dataBuffer) {
+            let parsed: any = dataBuffer;
+            try {
+              parsed = JSON.parse(dataBuffer);
+            } catch {}
+            yield { type: eventType || "message", data: parsed };
+          }
+          dataBuffer = "";
+          eventType = undefined;
+          continue;
+        }
+        if (line.startsWith(":")) {
+          continue; // keep-alive comment
+        }
+        if (line.startsWith("event:")) {
+          eventType = line.slice(6).trim();
+        } else if (line.startsWith("data:")) {
+          dataBuffer += line.slice(5).trim();
+        }
+      }
+    }
   }
 }
 
