@@ -64,22 +64,33 @@ export function mapSchemaTypeToFieldType(
 /**
  * Extracts field definitions from a JSON Schema
  */
-export function extractFieldDefinitions(schema: JSONSchema) {
-  const fields: Array<{
-    name: string;
-    type: string;
-    label: string;
-    description?: string;
-    required: boolean;
-    default?: any;
-    options?: any[];
-    min?: number;
-    max?: number;
-    minLength?: number;
-    maxLength?: number;
-    pattern?: string;
-    properties?: Record<string, any>;
-  }> = [];
+export interface FieldDefinition {
+  name: string;
+  type: string;
+  label: string;
+  description?: string;
+  required: boolean;
+  default?: any;
+  const?: any;
+  examples?: any[];
+  options?: any[];
+  min?: number;
+  max?: number;
+  minLength?: number;
+  maxLength?: number;
+  minItems?: number;
+  maxItems?: number;
+  pattern?: string;
+  properties?: Record<string, any>;
+  items?: JSONSchemaProperty;
+  oneOf?: JSONSchemaProperty[];
+  anyOf?: JSONSchemaProperty[];
+}
+
+export function extractFieldDefinitions(
+  schema: JSONSchema | JSONSchemaProperty
+) {
+  const fields: FieldDefinition[] = [];
   
   const properties = schema.properties || {};
   const requiredFields = schema.required || [];
@@ -87,23 +98,27 @@ export function extractFieldDefinitions(schema: JSONSchema) {
   for (const [propertyName, property] of Object.entries(properties)) {
     const fieldType = mapSchemaTypeToFieldType(property, propertyName);
     
-    const field = {
+    const field: FieldDefinition = {
       name: propertyName,
       type: fieldType,
       label: property.title || formatPropertyName(propertyName),
       description: property.description,
       required: requiredFields.includes(propertyName),
       default: property.default,
-      options: property.enum?.map(value => ({
-        label: String(value),
-        value
-      })),
+      const: (property as any).const,
+      examples: (property as any).examples,
+      options: property.enum?.map((value) => ({ label: String(value), value })),
       min: property.minimum,
       max: property.maximum,
       minLength: property.minLength,
       maxLength: property.maxLength,
+      minItems: (property as any).minItems,
+      maxItems: (property as any).maxItems,
       pattern: property.pattern,
       properties: property.properties,
+      items: property.items,
+      oneOf: (property as any).oneOf,
+      anyOf: (property as any).anyOf,
     };
     
     fields.push(field);
