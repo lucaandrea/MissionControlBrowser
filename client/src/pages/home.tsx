@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { ServerConnectForm } from "@/components/server-connect-form";
+import { ServerDirectoryDialog } from "@/components/server-directory-dialog";
 import { AuthForm } from "@/components/auth-form";
 import { ToolCatalog } from "@/components/tool-catalog";
 import { ToolDetail } from "@/components/tool-detail";
@@ -41,6 +42,8 @@ export default function Home() {
     // History
     recentServers,
   } = useAppStore();
+
+  const [directoryOpen, setDirectoryOpen] = useState(false);
   
   // Handle initial connection to server
   const handleConnect = (url: string) => {
@@ -55,6 +58,11 @@ export default function Home() {
   // Handle authentication
   const handleAuthenticate = (token: string, remember: boolean) => {
     authenticate(token, remember);
+  };
+
+  const handleDirectorySelect = (url: string) => {
+    setDirectoryOpen(false);
+    connect(url);
   };
   
   // Handle tool execution
@@ -76,6 +84,7 @@ export default function Home() {
               recentServers={recentServers}
               onConnect={handleConnect}
               onRecentServerSelect={handleRecentServerSelect}
+              onBrowseServers={() => setDirectoryOpen(true)}
             />
           </div>
         )}
@@ -174,6 +183,11 @@ export default function Home() {
       </main>
       
       <Footer />
+      <ServerDirectoryDialog
+        open={directoryOpen}
+        onOpenChange={setDirectoryOpen}
+        onSelect={handleDirectorySelect}
+      />
     </div>
   );
 }

@@ -29,12 +29,14 @@ interface ServerConnectFormProps {
   recentServers: MCPServer[];
   onConnect: (url: string) => void;
   onRecentServerSelect: (server: MCPServer) => void;
+  onBrowseServers: () => void;
 }
 
 export function ServerConnectForm({
   recentServers,
   onConnect,
   onRecentServerSelect,
+  onBrowseServers,
 }: ServerConnectFormProps) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -79,6 +81,9 @@ export function ServerConnectForm({
             />
             <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
               Connect
+            </Button>
+            <Button type="button" variant="outline" className="w-full" onClick={onBrowseServers}>
+              Browse Servers
             </Button>
           </form>
         </Form>
