@@ -1,6 +1,13 @@
 import { create } from "zustand";
 import { MCPClient, createToolExecution, completeToolExecution } from "@/lib/mcp-client";
-import { AppState, MCPServer, MCPTool, ToolExecution } from "@/shared/types";
+import {
+  AppState,
+  MCPServer,
+  MCPTool,
+  ToolExecution,
+  DirectoryServer,
+} from "@/shared/types";
+import { getServerDirectory } from "@/lib/directory";
 import { saveServer, saveAuthToken, getAuthToken, saveExecution, loadHistory } from "@/lib/storage";
 import { useToast } from "@/hooks/use-toast";
 
@@ -20,6 +27,8 @@ const initialState: AppState = {
   filteredTools: [],
   searchQuery: "",
   activeTags: [],
+
+  serverDirectory: [],
   
   // Execution state
   isExecuting: false,
@@ -36,6 +45,7 @@ const history = loadHistory();
 export const useAppStore = create<
   AppState & {
     recentServers: MCPServer[];
+    serverDirectory: DirectoryServer[];
     
     // Actions
     connect: (url: string) => Promise<void>;
@@ -45,10 +55,12 @@ export const useAppStore = create<
     selectTool: (tool: MCPTool) => void;
     executeTool: (tool: MCPTool, inputs: Record<string, any>) => Promise<void>;
     clearExecution: () => void;
+    loadServerDirectory: () => Promise<void>;
   }
 >((set, get) => ({
   ...initialState,
   recentServers: history.recentServers,
+  serverDirectory: [],
   
   // Connect to a server
   connect: async (url: string) => {
@@ -256,5 +268,10 @@ export const useAppStore = create<
     set({
       currentExecution: undefined,
     });
+  },
+
+  loadServerDirectory: async () => {
+    const directory = await getServerDirectory();
+    set({ serverDirectory: directory });
   },
 }));

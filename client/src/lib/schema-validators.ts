@@ -32,6 +32,15 @@ export function createZodSchemaFromJsonSchema(jsonSchema: any): z.ZodType<any> {
     jsonSchema.type = "object";
   }
 
+  if (jsonSchema.oneOf || jsonSchema.anyOf) {
+    const variants = (jsonSchema.oneOf || jsonSchema.anyOf) as any[];
+    const schemas = variants.map((v) => createZodSchemaFromJsonSchema(v));
+    if (schemas.length === 0) {
+      return z.any();
+    }
+    return z.union(schemas as [z.ZodTypeAny, ...z.ZodTypeAny[]]);
+  }
+
   switch (jsonSchema.type) {
     case "string":
       let stringSchema = z.string();
@@ -59,6 +68,11 @@ export function createZodSchemaFromJsonSchema(jsonSchema: any): z.ZodType<any> {
         stringSchema = stringSchema.url("Invalid URL");
       }
 
+      if (jsonSchema.const !== undefined) {
+        stringSchema = stringSchema.refine(val => val === jsonSchema.const,
+          `Value must be ${jsonSchema.const}`);
+      }
+
       if (jsonSchema.enum) {
         return z.enum(jsonSchema.enum as [string, ...string[]]);
       }
@@ -67,7 +81,7 @@ export function createZodSchemaFromJsonSchema(jsonSchema: any): z.ZodType<any> {
 
     case "number":
     case "integer":
-      let numberSchema = jsonSchema.type === "integer" 
+      let numberSchema = jsonSchema.type === "integer"
         ? z.number().int("Must be an integer")
         : z.number();
 
@@ -77,14 +91,24 @@ export function createZodSchemaFromJsonSchema(jsonSchema: any): z.ZodType<any> {
       }
 
       if (jsonSchema.maximum !== undefined) {
-        numberSchema = numberSchema.max(jsonSchema.maximum, 
+        numberSchema = numberSchema.max(jsonSchema.maximum,
           `Maximum value is ${jsonSchema.maximum}`);
+      }
+
+      if (jsonSchema.const !== undefined) {
+        numberSchema = numberSchema.refine(val => val === jsonSchema.const,
+          `Value must be ${jsonSchema.const}`);
       }
 
       return numberSchema;
 
     case "boolean":
-      return z.boolean();
+      let boolSchema = z.boolean();
+      if (jsonSchema.const !== undefined) {
+        boolSchema = boolSchema.refine(val => val === jsonSchema.const,
+          `Value must be ${jsonSchema.const}`);
+      }
+      return boolSchema;
 
     case "array":
       if (!jsonSchema.items) {
@@ -100,8 +124,13 @@ export function createZodSchemaFromJsonSchema(jsonSchema: any): z.ZodType<any> {
       }
 
       if (jsonSchema.maxItems !== undefined) {
-        arraySchema = arraySchema.max(jsonSchema.maxItems, 
+        arraySchema = arraySchema.max(jsonSchema.maxItems,
           `Maximum items is ${jsonSchema.maxItems}`);
+      }
+
+      if (jsonSchema.const !== undefined) {
+        arraySchema = arraySchema.refine(val => JSON.stringify(val) === JSON.stringify(jsonSchema.const),
+          "Invalid value");
       }
 
       return arraySchema;
@@ -120,7 +149,12 @@ export function createZodSchemaFromJsonSchema(jsonSchema: any): z.ZodType<any> {
           : propertySchema.optional();
       }
 
-      return z.object(shape);
+      let objSchema = z.object(shape);
+      if (jsonSchema.const !== undefined) {
+        objSchema = objSchema.refine(val => JSON.stringify(val) === JSON.stringify(jsonSchema.const),
+          "Invalid value");
+      }
+      return objSchema;
 
     default:
       return z.any();

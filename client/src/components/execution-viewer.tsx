@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ToolExecution } from "@/shared/types";
 import { formatExecutionTime, renderResponse, determineResponseType } from "@/lib/response-renderer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ExecutionSkeleton } from "@/components/skeletons";
 
 interface ExecutionViewerProps {
   execution?: ToolExecution;
@@ -162,29 +163,35 @@ export function ExecutionViewer({ execution, onClear }: ExecutionViewerProps) {
             <div className="prose prose-sm dark:prose-invert max-w-none">
               {renderOutput(execution.outputs)}
             </div>
+          ) : execution.status === "running" ? (
+            <ExecutionSkeleton />
           ) : (
-            <div className="text-gray-500 dark:text-gray-400">
-              {execution.status === "running" ? "Waiting for results..." : "No output available"}
-            </div>
+            <div className="text-gray-500 dark:text-gray-400">No output available</div>
           )}
         </TabsContent>
         
         <TabsContent value="console" className="flex-1 overflow-auto p-4 bg-gray-900 m-0 border-0">
-          <pre className="font-mono text-xs text-gray-300 whitespace-pre-wrap">
-            {execution.logs.length > 0 
-              ? execution.logs.join("\n") 
-              : "No logs available"
-            }
-          </pre>
+          {execution.logs.length > 0 ? (
+            <pre className="font-mono text-xs text-gray-300 whitespace-pre-wrap">
+              {execution.logs.join("\n")}
+            </pre>
+          ) : execution.status === "running" ? (
+            <ExecutionSkeleton />
+          ) : (
+            <pre className="font-mono text-xs text-gray-300 whitespace-pre-wrap">No logs available</pre>
+          )}
         </TabsContent>
         
         <TabsContent value="raw" className="flex-1 overflow-auto p-4 bg-gray-900 m-0 border-0">
-          <pre className="font-mono text-xs text-gray-300 whitespace-pre-wrap">
-            {execution.outputs
-              ? JSON.stringify(execution.outputs, null, 2)
-              : "No data available"
-            }
-          </pre>
+          {execution.outputs ? (
+            <pre className="font-mono text-xs text-gray-300 whitespace-pre-wrap">
+              {JSON.stringify(execution.outputs, null, 2)}
+            </pre>
+          ) : execution.status === "running" ? (
+            <ExecutionSkeleton />
+          ) : (
+            <pre className="font-mono text-xs text-gray-300 whitespace-pre-wrap">No data available</pre>
+          )}
         </TabsContent>
       </Tabs>
     </div>
