@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Form } from "@/components/ui/form";
 import { SchemaForm } from "@/components/schema-form";
 import { MCPTool } from "@/shared/types";
 import { createZodSchemaFromJsonSchema } from "@/lib/schema-validators";
@@ -65,7 +66,8 @@ export function ToolDetail({
           </p>
         )}
         
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <SchemaForm
               schema={tool.inputs}
               form={form}
@@ -77,7 +79,8 @@ export function ToolDetail({
               disabled={isRunning || form.formState.isSubmitting}>
               {isRunning ? "Running..." : "Run Tool"}
             </Button>
-        </form>
+          </form>
+        </Form>
       </div>
     </div>
   );
