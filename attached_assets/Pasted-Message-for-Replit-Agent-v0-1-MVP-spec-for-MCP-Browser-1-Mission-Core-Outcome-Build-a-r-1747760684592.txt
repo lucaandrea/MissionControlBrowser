@@ -1,0 +1,85 @@
+Message for Replit Agent — v0.1 MVP spec for “MCP Browser”
+
+⸻
+
+1 — Mission & Core Outcome
+
+Build a runnable end-to-end proof of concept that lets a user paste an MCP-compatible server URL and immediately:
+	1.	Authenticate (if required).
+	2.	Discover tools via the server’s manifest / SSE handshake.
+	3.	Render an auto-generated UI for each tool so the user can invoke it without writing JSON.
+	4.	Display results in a human-friendly, type-aware viewer (markdown, table, JSON tree, file preview).
+
+The POC must be self-contained, launch in one command from Replit, and demonstrate the full round-trip: URL → manifest → form → request → streamed response → render.
+
+⸻
+
+2 — Tech Constraints
+	•	Front-end: React + TypeScript. Use Vite for speed. Tailwind for styling.
+	•	State: React Context or Zustand (your call, but keep it minimal).
+	•	Schema → UI: use a JSON-Schema-to-form library (e.g., react-json-schema-form) wrapped in a utility that maps MCP input schemas to form controls.
+	•	Streaming: support SSE or chunked fetch — show incremental logs in a console pane.
+	•	Persistence: localStorage/IndexedDB for saved servers, auth tokens, and run history.
+	•	No backend today; everything runs client side. Mock an MCP server in dev mode for deterministic tests.
+
+⸻
+
+3 — Functional Spec
+
+#	Feature	Acceptance criteria
+F-1	Landing screen	Single input for MCP URL. Submit fetches manifest; errors surface in toast.
+F-2	Auth flow	If manifest declares auth, prompt for API key or bearer token; persist per-server.
+F-3	Tool catalog	Grid/list of tools showing name, description, and tags. Search bar and tag filter.
+F-4	Tool detail	Auto-built form: correct widgets for strings, numbers, enums, booleans, files. “Run” button.
+F-5	Execution viewer	Right pane streams logs / partial results; on finish, smart-render final payload.
+F-6	History	Lightweight log of last N runs per server: timestamp, tool, input summary, status.
+F-7	Theming & UX polish	Dark/light toggle, keyboard nav to switch between catalog and form.
+
+
+⸻
+
+4 — Non-Functional
+	•	Performance: initial bundle ≤ 300 kB gzipped (exclude large LLM libs for now).
+	•	Accessibility: basic a11y passes (ARIA roles, focus ring, high-contrast).
+	•	Error handling: surface network + schema errors clearly; no console noise.
+	•	Testing: Jest + React Testing Library for critical utils (schema-to-form, response renderer).
+
+⸻
+
+5 — Suggested Work Plan
+	1.	Scaffold repo: Vite + React TS + Tailwind + ESLint/Prettier.
+	2.	Create manifest service: fetch, cache, normalize manifest → TypeScript types.
+	3.	Build form generator: small wrapper over chosen JSON-schema UI lib; unit test with varied schemas.
+	4.	Implement tool runner: fetch with streaming; expose async iterator for UI.
+	5.	Assemble pages: Landing → Catalog → Detail (split by React Router).
+	6.	Add response renderer: markdown parser, JSON tree, table builder for arrays, blob previews.
+	7.	Wire history store.
+	8.	Polish UI + a11y.
+	9.	Write README: local dev, build, mock-server usage.
+
+⸻
+
+6 — Deliverables
+	1.	Replit project URL with runnable app (npm run dev).
+	2.	README covering setup, architecture diagram, and dev fixtures.
+	3.	Mock MCP server script or JSON static file for repeatable tests.
+	4.	Automated tests passing in CI (Replit’s Nix environment).
+
+⸻
+
+7 — Next Milestones (for context)
+	•	v0.2: natural-language chat panel that auto-invokes tools.
+	•	v0.3: workflow recorder / sharable .mcpflow export.
+	•	v1.0: Electron/Tauri desktop build with multi-server tabs, SSO auth, RBAC.
+
+⸻
+
+8 — Guiding Principles
+	•	Keep the codebase tiny and legible; avoid premature abstractions.
+	•	Feature flags over throw-away branches.
+	•	Document quirks and open questions inline with // TODO: comments tagged by owner.
+	•	Optimize for fast iteration — Luca will review and refactor with you post-handoff.
+
+⸻
+
+Go build!
