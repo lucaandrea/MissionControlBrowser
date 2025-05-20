@@ -7,6 +7,7 @@ import { AuthForm } from "@/components/auth-form";
 import { ToolCatalog } from "@/components/tool-catalog";
 import { ToolDetail } from "@/components/tool-detail";
 import { ExecutionViewer } from "@/components/execution-viewer";
+import { ManifestSkeleton } from "@/components/skeletons";
 import { useAppStore } from "@/stores/app-store";
 import { MCPServer } from "@/shared/types";
 
@@ -15,6 +16,7 @@ export default function Home() {
     // Connection state
     isConnected,
     isConnecting,
+    connectionError,
     serverUrl,
     connect,
     disconnect,
@@ -22,6 +24,7 @@ export default function Home() {
     // Auth state
     requiresAuth,
     isAuthenticating,
+    authError,
     authenticate,
     cancelAuth,
     
@@ -34,6 +37,7 @@ export default function Home() {
     currentExecution,
     executeTool,
     clearExecution,
+    executionError,
     
     // UI state
     activeView,
@@ -91,20 +95,27 @@ export default function Home() {
         
         {/* Auth Form View */}
         {activeView === "auth" && (
-          <div className="flex-grow flex items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
-            <AuthForm
-              serverUrl={serverUrl}
-              onAuthenticate={handleAuthenticate}
-              onCancel={cancelAuth}
-            />
+          <div className="flex-grow flex flex-col items-center justify-center px-4 py-10 sm:px-6 lg:px-8 space-y-4">
+            {isAuthenticating ? (
+              <ManifestSkeleton />
+            ) : (
+              <AuthForm
+                serverUrl={serverUrl}
+                onAuthenticate={handleAuthenticate}
+                onCancel={cancelAuth}
+              />
+            )}
+            {authError && (
+              <p className="text-sm text-red-500 text-center">{authError}</p>
+            )}
           </div>
         )}
         
         {/* Main Application View */}
         {activeView === "main" && (
-          <div className="flex-grow">
+          <div className="flex-grow container mx-auto grid grid-cols-12 gap-4">
             {/* Tab navigation for mobile */}
-            <div className="sm:hidden bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+            <div className="sm:hidden col-span-12 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
               <div className="px-4 sm:px-6 lg:px-8">
                 <nav className="flex space-x-4" aria-label="Tabs">
                   <button 
@@ -142,9 +153,9 @@ export default function Home() {
             </div>
             
             {/* Desktop layout (side by side) */}
-            <div className="flex flex-col sm:flex-row flex-grow">
+            <div className="col-span-12 grid grid-cols-12 gap-4 flex-grow">
               {/* Left Panel (Tools Catalog + Tool Detail) */}
-              <div className="w-full sm:w-2/5 lg:w-1/3 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+              <div className="col-span-12 md:col-span-4 lg:col-span-3 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
                 {/* Catalog view */}
                 {(activeTab === "catalog" || !selectedTool) && (
                   <ToolCatalog
@@ -167,8 +178,8 @@ export default function Home() {
               </div>
               
               {/* Right Panel (Execution Viewer) */}
-              <div 
-                className={`w-full sm:w-3/5 lg:w-2/3 bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden ${
+              <div
+                className={`col-span-12 md:col-span-8 lg:col-span-9 bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden ${
                   activeTab === "output" || activeTab === "detail" ? "flex" : "hidden sm:flex"
                 }`}
               >
@@ -178,6 +189,9 @@ export default function Home() {
                 />
               </div>
             </div>
+            {executionError && (
+              <p className="col-span-12 text-center text-red-500 text-sm">{executionError}</p>
+            )}
           </div>
         )}
       </main>
