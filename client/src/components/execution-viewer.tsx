@@ -240,7 +240,9 @@ function renderOutput(output: any) {
         </div>
       );
       
-    default:
-      return renderResponse(output);
+    default: {
+      const response = renderResponse(output);
+      return <div>{typeof response.content === 'string' ? response.content : JSON.stringify(response.content)}</div>;
+    }
   }
 }
