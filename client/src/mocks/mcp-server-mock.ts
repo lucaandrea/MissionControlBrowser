@@ -134,14 +134,14 @@ const tools: MCPTool[] = [
   },
 ];
 
-// Sample manifest
+// Sample manifest 
 export const mockManifest: MCPManifest = {
   name: "MCP Demo Server",
   description: "A demonstration MCP server with various tools",
   version: "1.0.0",
   auth: {
     type: "bearer",
-    required: true,
+    required: false, // Changed to false for easier testing
   },
   tools,
 };
